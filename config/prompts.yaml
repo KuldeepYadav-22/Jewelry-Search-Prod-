@@ -1,0 +1,137 @@
+categories:
+  ring:
+    - "a small ring worn on a finger"
+    - "a thin circular band on a finger"
+    - "a solitaire diamond ring on a hand"
+    - "a wedding band on a finger"
+    - "a mens signet ring on a finger"
+    - "a tiny ring worn on a toe"
+
+  necklace:
+    - "a necklace draped around a neck"
+    - "a long chain necklace hanging down"
+    - "a choker necklace close to the throat"
+    - "a plain metal chain with linked loops"
+    - "a layered necklace with multiple strands"
+
+  pendant:
+    - "a single hanging pendant charm without chain"
+    - "an ornamental piece hanging from a bail"
+    - "a religious idol pendant"
+    - "a medallion shaped pendant"
+    - "a locket pendant"
+
+  mangalsutra:
+    - "a necklace with black beads and a gold pendant"
+    - "two strands of small black beads with a center pendant"
+    - "black beaded chains connected to a gold ornament"
+    - "a traditional necklace with black bead strings"
+
+  earring:
+    - "a pair of earrings for the ear"
+    - "a stud earring with a post back"
+    - "a dangling drop earring"
+    - "a jhumka hanging earring"
+    - "a hoop earring"
+    - "an ear cuff on the upper ear"
+
+  nosering:
+    - "a tiny nose pin stud"
+    - "a small ring or stud for a nostril"
+    - "a decorative nath for the nose"
+
+  bangle:
+    - "a rigid round bangle that does not bend"
+    - "a thick stiff circular bangle for the wrist"
+    - "a solid round bangle bracelet"
+    - "a set of matching bangles"
+
+  bracelet:
+    - "a flexible chain bracelet on a wrist"
+    - "a link bracelet with a clasp"
+    - "a tennis bracelet with stones in a row"
+    - "a cuff bracelet that opens"
+
+  anklet:
+    - "an anklet chain around an ankle"
+    - "a thin chain with tiny bells for the foot"
+    - "a delicate chain for the ankle"
+
+  watch:
+    - "a wristwatch with a dial and strap"
+    - "a watch with a round face and metal band"
+    - "a timepiece with hour markers"
+
+  head_jewellery:
+    - "a maang tikka on the forehead"
+    - "a decorative hair pin"
+    - "a head chain ornament"
+    - "a jhoomar side head piece"
+
+  waist_belt:
+    - "a waist chain belt"
+    - "a kamarband around the waist"
+    - "a belly chain"
+
+  brooch:
+    - "a decorative pin brooch"
+    - "a flat ornamental piece with a pin clasp"
+    - "a saree pin"
+
+  coin:
+    - "a gold coin"
+    - "a round flat gold disc"
+    - "a commemorative gold coin"
+
+  jewellery_set:
+    - "a matching set of necklace and earrings"
+    - "multiple jewelry pieces displayed together"
+    - "a bridal set with necklace earrings and bangles"
+
+  paper:
+    - "a printed paper document"
+    - "a paper receipt or bill"
+    - "a price tag label"
+    - "a barcode sticker on paper"
+
+materials:
+  gold:
+    - "bright warm yellow metallic surface"
+    - "shiny golden colored polished metal"
+    - "warm yellow toned jewelry"
+    - "rich yellow reflective metal"
+
+  white_metal:
+    - "cool grey white metallic surface"
+    - "shiny silver grey colored metal"
+    - "bright white reflective metal"
+    - "grey toned polished metal"
+
+  rose_gold:
+    - "pinkish warm metallic surface"
+    - "soft pink gold colored metal"
+    - "rosy copper toned warm metal"
+
+  diamond_stones:
+    - "jewelry covered with small sparkling clear stones"
+    - "tiny brilliant transparent crystals set in metal"
+    - "glittering white stone settings"
+
+  colored_gemstone:
+    - "jewelry with colored gemstones"
+    - "a colored stone set in metal"
+    - "bright colored gem in a setting"
+
+  pearl:
+    - "round white pearl beads"
+    - "smooth lustrous pearl spheres"
+    - "creamy white round pearls"
+
+  black_beads:
+    - "small round black beads strung together"
+    - "black bead strands"
+
+  enamel_colored:
+    - "colorful enamel work on metal"
+    - "bright colored decorative coating on gold"
+    - "multicolored painted metal surface"

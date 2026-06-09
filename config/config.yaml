@@ -1,0 +1,12 @@
+inference:
+  device: auto
+
+  birefnet_model_path: models/BiRefNet
+  clip_model_path: models/clip-ViT-L-14
+  dinov2_model: dinov2_vitl14
+
+  use_fp16: false
+
+batch:
+  size: 4
+  checkpoint_every: 500
