@@ -1,12 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Jewelry Image Search — Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
 inference:
   device: auto
-
   birefnet_model_path: models/BiRefNet
   clip_model_path: models/clip-ViT-L-14
   dinov2_model: dinov2_vitl14
-
   use_fp16: false
 
+# ── Indexing ─────────────────────────────────────────────────────────────────
 batch:
   size: 4
   checkpoint_every: 500
+
+# ── Search ───────────────────────────────────────────────────────────────────
+search:
+  top_k: 10                          # max results returned
+  pool_size: 10                      # top-N candidates from each model
+  final_threshold: 0.7               # min score to include in results
+  use_category_filter: true
+  use_material_filter: true
+  material_confidence_threshold: 0.20
+  category_confidence_threshold: 0.20
+
+  # Pool merge penalties
+  # Items found by only one model get penalized
+  dino_only_penalty: 0.9             # DINOv2-only match (design match, material uncertain)
+  clip_only_penalty: 0.85            # CLIP-only match (material match, design uncertain)
