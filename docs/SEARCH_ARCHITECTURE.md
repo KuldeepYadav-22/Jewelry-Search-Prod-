@@ -2,308 +2,247 @@
 
 ## 1. Pipeline Overview
 
-The search pipeline accepts a query image and a tenant identifier, then returns the top-K most similar products from that tenant's catalog. It uses a **pool-based** scoring approach where two models independently select their best candidates, which are then merged and ranked.
+The search pipeline accepts a query image and tenant_id, returns ranked **unique products** from that tenant's catalog. It uses **threshold-based pools** where each model independently selects all images above a quality threshold, then deduplicates by serial_number to return unique products.
 
-### Why pool-based instead of weighted combination?
+### Why threshold pools instead of fixed top-N?
 
-A weighted combination (e.g., `0.4 × CLIP + 0.6 × DINOv2`) has two problems:
+A product can have up to 5 images (different orientations). With a fixed pool of 10, you get only 2 products. Threshold pools let a variable number of images in based on quality, and deduplication ensures unique products in the final results.
 
-1. **One model can dominate.** If CLIP gives 0.95 to a wrong-material match and DINOv2 gives 0.60, the weighted score is 0.74 — still high enough to rank #1 despite DINOv2 flagging it as a poor visual match.
-2. **Weights require tuning.** The optimal ratio changes per category, material, and dataset. Fixed weights are always a compromise.
-
-Pool-based search solves both: each model independently selects its best candidates, and only items that **at least one model strongly endorses** make the final set. Items endorsed by **both** models are ranked highest.
+```
+Fixed pool (broken):     top 10 images = 2 products × 5 orientations = useless
+Threshold pool (correct): all images above threshold → dedup → many unique products
+```
 
 ## 2. Pipeline Flow
 
 ```mermaid
 flowchart TD
-    A[Query Image + tenant_id] --> B[BiRefNet<br/>Background Removal]
+    A[Query Image + tenant_id] --> B[BiRefNet — Background Removal]
     B --> C[RGBA Image]
-    C --> D[White BG<br/>Uncropped]
-    C --> E[Crop to<br/>Subject]
+    C --> D[White BG — Uncropped]
+    C --> E[Crop to Subject]
 
-    D --> F[CLIP ViT-L/14<br/>768-dim embedding]
-    E --> G[DINOv2 ViT-L/14<br/>1024-dim embedding]
+    D --> F[CLIP ViT-L/14 — 768-dim]
+    E --> G[DINOv2 ViT-L/14 — 1024-dim]
 
-    F --> H[Category Classifier<br/>Zero-shot, threshold ≥ 0.20]
-    F --> I[Material Classifier<br/>Zero-shot, threshold ≥ 0.20]
+    F --> H[Category Classifier]
+    F --> I[Material Classifier]
 
-    H -->|paper| REJ[REJECTED<br/>Not jewelry]
-    H -->|category| J[DB Query]
+    H -->|paper| REJ[REJECTED]
+    H -->|category| J[DB Query — SQLAlchemy ORM]
     I -->|material| J
 
-    J --> K["Fetch candidates<br/>WHERE tenant_id = T<br/>AND category = C<br/>AND material = M"]
+    J --> K["SELECT FROM jewelry_embeddings<br/>WHERE tenant_id = T<br/>AND category = C<br/>AND material = M"]
 
-    K -->|"< 3 results"| L["Fallback: remove<br/>material filter"]
+    K -->|"< 3 results"| L["Fallback: DROP material filter"]
     L --> K2["WHERE tenant_id = T<br/>AND category = C"]
-    K -->|"≥ 3 results"| M[Pool-Based Scoring]
+    K -->|"≥ 3 results"| M[Compute Similarities]
     K2 --> M
 
-    F --> M
-    G --> M
+    M --> N["Threshold Pools<br/>CLIP: score ≥ 0.50<br/>DINOv2: score ≥ 0.30"]
+    N --> O["Merge — Union<br/>Score: both=avg, dino×0.9, clip×0.85"]
+    O --> P["Deduplicate by serial_number<br/>Keep BEST score per product"]
+    P --> Q["Final Threshold ≥ 0.50"]
+    Q --> R[Top-K Unique Products]
 
-    M --> N[Threshold Filter<br/>score ≥ 0.7]
-    N --> O[Top-K Results]
-
-    style REJ fill:#f8d7da,stroke:#333,color:#000
-    style O fill:#d4edda,stroke:#333,color:#000
+    style REJ fill:#f8d7da,stroke:#333
+    style R fill:#d4edda,stroke:#333
 ```
 
-## 3. Pool-Based Scoring — Step by Step
+## 3. Scoring — Step by Step
 
-### Step 1: Compute similarities independently
+### Step 1: Compute similarities
 
-For each candidate `i` in the filtered set:
-
-```
-clip_score(i) = cosine_similarity(query_clip, candidate_clip[i])
-dino_score(i) = cosine_similarity(query_dino, candidate_dino[i])
-```
-
-Where cosine similarity is:
+For each candidate image `i`:
 
 ```
+clip_score(i)  = cos(query_clip,  candidate_clip[i])
+dino_score(i)  = cos(query_dino,  candidate_dino[i])
+
                     A · B
-cos(A, B) = ─────────────────
-              ‖A‖ × ‖B‖
+where cos(A, B) = ─────────────
+                  ‖A‖ × ‖B‖
 ```
 
-### Step 2: Select independent pools
+### Step 2: Threshold-based pool selection
 
 ```
-CLIP_pool  = top N candidates by clip_score     (N = pool_size)
-DINOv2_pool = top N candidates by dino_score    (N = pool_size)
+CLIP_pool  = { i : clip_score(i)  ≥ clip_pool_threshold  }
+DINOv2_pool = { i : dino_score(i) ≥ dino_pool_threshold }
+
+If both pools empty → fallback: take top 20 from each
 ```
 
-Each pool contains up to `pool_size` candidates. They are selected independently — the pools may partially overlap or be completely disjoint.
+Pool sizes are **variable** — determined by data quality, not a fixed number.
 
-### Step 3: Merge pools
-
-```
-merged = CLIP_pool ∪ DINOv2_pool          (union, up to 2N unique candidates)
-overlap = CLIP_pool ∩ DINOv2_pool          (intersection)
-```
-
-```mermaid
-flowchart LR
-    subgraph CLIP_Pool ["CLIP Pool (top N)"]
-        C1[Item A]
-        C2[Item B]
-        C3[Item C]
-        C4[Item D]
-    end
-
-    subgraph DINOv2_Pool ["DINOv2 Pool (top N)"]
-        D1[Item B]
-        D2[Item C]
-        D3[Item E]
-        D4[Item F]
-    end
-
-    subgraph Merged ["Merged (scored)"]
-        M1["Item B — in BOTH → avg(clip, dino)"]
-        M2["Item C — in BOTH → avg(clip, dino)"]
-        M3["Item A — CLIP only → clip × 0.85"]
-        M4["Item D — CLIP only → clip × 0.85"]
-        M5["Item E — DINOv2 only → dino × 0.9"]
-        M6["Item F — DINOv2 only → dino × 0.9"]
-    end
-
-    style M1 fill:#d4edda,stroke:#333,color:#000
-    style M2 fill:#d4edda,stroke:#333,color:#000
-    style M3 fill:#fff3cd,stroke:#333,color:#000
-    style M4 fill:#fff3cd,stroke:#333,color:#000
-    style M5 fill:#cce5ff,stroke:#333,color:#000
-    style M6 fill:#cce5ff,stroke:#333,color:#000
-```
-
-### Step 4: Score each merged candidate
-
-For each candidate `i` in the merged set:
+### Step 3: Merge and score
 
 ```
-If i ∈ CLIP_pool AND i ∈ DINOv2_pool:
-    score(i) = (clip_score(i) + dino_score(i)) / 2
-    pool_tag = "both"
+merged  = CLIP_pool ∪ DINOv2_pool
+overlap = CLIP_pool ∩ DINOv2_pool
 
-If i ∈ DINOv2_pool ONLY:
-    score(i) = dino_score(i) × penalty_dino
-    pool_tag = "dino"
-
-If i ∈ CLIP_pool ONLY:
-    score(i) = clip_score(i) × penalty_clip
-    pool_tag = "clip"
+For each image i in merged:
+  If i ∈ overlap:      score = (clip_score + dino_score) / 2    [both models agree]
+  If i ∈ DINOv2 only:  score = dino_score × 0.9                 [design match]
+  If i ∈ CLIP only:    score = clip_score × 0.85                 [material match]
 ```
 
-Default penalties:
+### Step 4: Deduplicate by serial_number
 
-| Pool membership | Score formula | Penalty | Rationale |
-|---|---|---|---|
-| Both pools | `(clip + dino) / 2` | None (1.0) | Both models agree → strongest signal |
-| DINOv2 only | `dino × 0.9` | 10% | Design match but uncertain material/style |
-| CLIP only | `clip × 0.85` | 15% | Material/style match but uncertain design |
-
-DINOv2-only gets a lighter penalty because after category + material filtering, CLIP's job is largely done. Within the filtered set, visual design similarity (DINOv2) is the primary differentiator.
-
-### Step 5: Threshold + Top-K
+A product "RN00005" may have 5 images in the pool:
 
 ```
-filtered = {i : score(i) ≥ threshold}       (default threshold = 0.7)
+RN00005_front.jpg    score = 0.82
+RN00005_side.jpg     score = 0.78
+RN00005_top.jpg      score = 0.75
+RN00005_angle.jpg    score = 0.71
+RN00005_back.jpg     score = 0.68
+
+After dedup → RN00005: score = 0.82 (best orientation kept)
+```
+
+### Step 5: Final threshold + top-K
+
+```
+filtered = { product : score ≥ final_threshold }
 results  = top K of filtered, sorted by score descending
 ```
 
-If fewer than K candidates pass the threshold, fewer than K results are returned. This is intentional — returning low-quality matches is worse than returning fewer results.
-
 ## 4. Scoring Examples
 
-### Example A: Perfect match (in both pools)
+### Example A: In both pools — strongest match
 
 ```
-Query: gold oval pendant with Ganesh motif
+Query: gold ring with solitaire diamond
 
-Candidate: gold oval pendant with deity motif
-  clip_score = 0.89   (same material, same category)
-  dino_score = 0.88   (same shape, same design density)
-  pool: both
-  score = (0.89 + 0.88) / 2 = 0.885   ✅ Above threshold
+Product RN00123 (best image):
+  clip_score = 0.89    (in CLIP pool ✓)
+  dino_score = 0.85    (in DINOv2 pool ✓)
+  pool = "both"
+  score = (0.89 + 0.85) / 2 = 0.870   ✅ rank #1
 ```
 
-### Example B: Design match only (DINOv2 pool only)
+### Example B: DINOv2 only — design match, material uncertain
 
 ```
-Query: gold oval pendant with Ganesh motif
-
-Candidate: silver oval pendant with deity motif
-  clip_score = 0.71   (different material → not in CLIP top-N)
-  dino_score = 0.86   (same shape, same design)
-  pool: dino
-  score = 0.86 × 0.9 = 0.774   ✅ Above threshold
+Product RN00456 (best image):
+  clip_score = 0.45    (below CLIP threshold ✗)
+  dino_score = 0.82    (in DINOv2 pool ✓)
+  pool = "dino"
+  score = 0.82 × 0.9 = 0.738   ✅ above final threshold
 ```
 
-### Example C: Material match only (CLIP pool only)
+### Example C: CLIP only — material match, different design
 
 ```
-Query: gold oval pendant with Ganesh motif
-
-Candidate: gold rectangular pendant, plain
-  clip_score = 0.88   (same material, same category)
-  dino_score = 0.35   (different shape, different design → not in DINOv2 top-N)
-  pool: clip
-  score = 0.88 × 0.85 = 0.748   ✅ Above threshold, but ranks lower
+Product RN00789 (best image):
+  clip_score = 0.88    (in CLIP pool ✓)
+  dino_score = 0.22    (below DINOv2 threshold ✗)
+  pool = "clip"
+  score = 0.88 × 0.85 = 0.748   ✅ but ranks below both-pool matches
 ```
 
-### Example D: Below threshold
+### Example D: Below final threshold — excluded
 
 ```
-Query: gold oval pendant with Ganesh motif
-
-Candidate: gold chain, plain
-  clip_score = 0.82   (same material)
-  dino_score = 0.20   (completely different design)
-  pool: clip (CLIP-only)
-  score = 0.82 × 0.85 = 0.697   ❌ Below 0.7 threshold, excluded
+Product RN00999 (best image):
+  clip_score = 0.52    (in CLIP pool ✓)
+  dino_score = 0.20    (below DINOv2 threshold ✗)
+  pool = "clip"
+  score = 0.52 × 0.85 = 0.442   ❌ below 0.50 final threshold
 ```
 
-## 5. Configuration Reference
+## 5. Database Layer — SQLAlchemy ORM
 
-All parameters are configurable via `config/config.yaml`:
+### Table model
+
+```python
+class JewelryEmbedding(Base):
+    __tablename__ = "jewelry_embeddings"
+
+    id                  = Column(String, primary_key=True)
+    serial_number       = Column(String, nullable=False, index=True)
+    tenant_id           = Column(String, nullable=False, index=True)
+    category            = Column(String)
+    category_confidence = Column(Float)
+    material            = Column(String)
+    material_confidence = Column(Float)
+    clip_embedding      = Column(Vector(768))
+    dino_embedding      = Column(Vector(1024))
+    image_url           = Column(Text)
+    created_at          = Column(DateTime)
+    updated_at          = Column(DateTime)
+```
+
+### Search query (ORM)
+
+```python
+stmt = (
+    select(JewelryEmbedding)
+    .where(and_(
+        JewelryEmbedding.tenant_id == tenant_id,
+        JewelryEmbedding.category == category,
+        JewelryEmbedding.material == material,
+    ))
+)
+rows = session.execute(stmt).scalars().all()
+```
+
+### Indexes
+
+```sql
+CREATE INDEX idx_tenant_category ON jewelry_embeddings(tenant_id, category);
+CREATE INDEX idx_tenant_material ON jewelry_embeddings(tenant_id, material);
+CREATE INDEX idx_tenant_serial   ON jewelry_embeddings(tenant_id, serial_number);
+CREATE INDEX idx_clip_hnsw ON jewelry_embeddings
+    USING hnsw (clip_embedding vector_ip_ops) WITH (m=24, ef_construction=128);
+CREATE INDEX idx_dino_hnsw ON jewelry_embeddings
+    USING hnsw (dino_embedding vector_ip_ops) WITH (m=24, ef_construction=128);
+```
+
+## 6. Configuration
 
 ```yaml
 search:
   top_k: 10
-  pool_size: 10
-  final_threshold: 0.7
-  use_category_filter: true
-  use_material_filter: true
-  material_confidence_threshold: 0.20
-  category_confidence_threshold: 0.20
+  clip_pool_threshold: 0.50
+  dino_pool_threshold: 0.30
+  final_threshold: 0.50
+  pool_fallback_size: 20
   dino_only_penalty: 0.9
   clip_only_penalty: 0.85
 ```
 
 | Parameter | Default | Description |
 |---|---|---|
-| `top_k` | 10 | Maximum results returned |
-| `pool_size` | 10 | Top-N candidates selected per model |
-| `final_threshold` | 0.7 | Minimum score to include in results |
-| `use_category_filter` | true | Filter candidates by predicted category |
-| `use_material_filter` | true | Filter candidates by predicted material |
-| `material_confidence_threshold` | 0.20 | Min confidence to apply material filter |
-| `category_confidence_threshold` | 0.20 | Min confidence to accept category classification |
+| `top_k` | 10 | Max unique products returned |
+| `clip_pool_threshold` | 0.50 | Min CLIP score to enter pool |
+| `dino_pool_threshold` | 0.30 | Min DINOv2 score to enter pool |
+| `final_threshold` | 0.50 | Min merged score for results |
+| `pool_fallback_size` | 20 | Top-N per model if both pools empty |
 | `dino_only_penalty` | 0.9 | Penalty for DINOv2-only matches |
 | `clip_only_penalty` | 0.85 | Penalty for CLIP-only matches |
 
-## 6. Output Format
+## 7. Latency
 
-```json
-{
-  "results": [
-    {
-      "serial_number": "EGPN017274",
-      "rank": 1,
-      "score": 0.885,
-      "clip_score": 0.89,
-      "dino_score": 0.88,
-      "pool": "both",
-      "category": "pendant",
-      "material": "gold"
-    },
-    {
-      "serial_number": "EGPN017278",
-      "rank": 2,
-      "score": 0.774,
-      "clip_score": 0.71,
-      "dino_score": 0.86,
-      "pool": "dino",
-      "category": "pendant",
-      "material": "silver"
-    }
-  ],
-  "query_category": "pendant",
-  "query_confidence": 0.284,
-  "query_material": "gold",
-  "material_confidence": 0.256,
-  "n_candidates": 200,
-  "pool_stats": {
-    "clip_pool_size": 10,
-    "dino_pool_size": 10,
-    "merged_size": 16,
-    "in_both": 4
-  },
-  "timing_ms": {
-    "birefnet_ms": 301.2,
-    "clip_ms": 41.5,
-    "classify_ms": 0.2,
-    "dinov2_ms": 39.8,
-    "db_ms": 5.3,
-    "search_ms": 0.4,
-    "total_ms": 389.1
-  }
-}
-```
-
-## 7. Latency Breakdown
-
-| Stage | Time (T4 GPU) | Notes |
-|---|---|---|
-| BiRefNet | ~300ms | Background removal at 1024×1024 |
-| CLIP encode | ~40ms | 224×224 forward pass |
-| Classify (cat + mat) | ~0.2ms | Two dot products against centroids |
-| DINOv2 encode | ~40ms | 224×224 forward pass |
-| DB fetch | ~5ms | pgvector with category + material index |
-| Pool scoring | ~0.4ms | Two cosine similarities + merge logic |
-| **Total** | **~385ms** | |
+| Stage | Time (T4 GPU) |
+|---|---|
+| BiRefNet | ~300ms |
+| CLIP encode | ~40ms |
+| Classify | ~0.2ms |
+| DINOv2 encode | ~40ms |
+| DB fetch (ORM) | ~5-10ms |
+| Pool scoring + dedup | ~0.5ms |
+| **Total** | **~390ms** |
 
 ## 8. Multi-Tenant Isolation
 
-Every DB query includes `WHERE tenant_id = ?`. A tenant's search never sees another tenant's products. The models and classifiers are shared (stateless) — no tenant-specific training or state.
-
 ```mermaid
 flowchart LR
-    A[Tenant A query] --> P[Shared Pipeline<br/>BiRefNet + CLIP + DINOv2]
+    A[Tenant A query] --> P[Shared Pipeline]
     B[Tenant B query] --> P
-    P --> DA["DB: WHERE tenant_id = 'A'"]
-    P --> DB_["DB: WHERE tenant_id = 'B'"]
-    DA --> RA[Results for A only]
-    DB_ --> RB[Results for B only]
+    P --> DA["ORM: WHERE tenant_id = 'A'"]
+    P --> DB_["ORM: WHERE tenant_id = 'B'"]
+    DA --> RA[Results A only]
+    DB_ --> RB[Results B only]
 ```
