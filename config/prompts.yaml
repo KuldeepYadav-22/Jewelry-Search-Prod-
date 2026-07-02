@@ -6,6 +6,10 @@ categories:
     - "a wedding band on a finger"
     - "a signet ring on a hand"
     - "a small closed-loop band sized for one finger, not an ear"
+    - "a tiny circular band placed flat, small enough for one finger only"
+    - "a finger ring on a hand model, clearly finger-sized not wrist-sized"
+    - "a closed loop too small to pass over a wrist, sized for a finger only"
+    - "a ring with a gemstone, clearly a finger-sized ornament not a wrist accessory"
 
   necklace:
     - "a necklace draped around a neck, resting on the chest"
@@ -15,12 +19,16 @@ categories:
     - "a full neck-worn piece with a clasp, not a standalone hanging charm"
     - "a necklace with a matching pendant and a pair of earrings shown together"
     - "a pendant necklace set accompanied by matching earrings"
+    - "a complete necklace with visible chain and clasp worn around the neck"
+    - "a complete necklace with chain and pendant shown together as one wearable piece"
 
   chain:
     - "a plain metal chain with linked loops, no pendant attached"
     - "a rope chain displayed flat, unadorned"
     - "a curb chain without pendant"
     - "a box chain laid straight, no hanging ornament"
+    - "a plain metal chain with no pendant or charm, just linked metal loops"
+    - "a standalone chain without any hanging ornament or gemstone"
 
   pendant:
     - "a single hanging pendant charm shown by itself, without a chain"
@@ -29,6 +37,8 @@ categories:
     - "a medallion shaped pendant, isolated"
     - "a locket pendant, not attached to a full chain"
     - "a small charm-like ornament, not the complete looped necklace"
+    - "a single decorative charm shown alone with no chain attached to it"
+    - "an ornament with a bail at top for attaching to a chain, shown in isolation"
 
   mangalsutra:
     - "a necklace with black beads and a gold pendant"
@@ -50,6 +60,10 @@ categories:
     - "a solid round bangle bracelet, hard and unflexing"
     - "a set of matching rigid bangles on the wrist"
     - "a stiff wrist hoop, larger than a finger ring and worn on the wrist, not the ankle"
+    - "a circular wrist ornament with large hollow center, much wider than a ring"
+    - "a rigid bangle large enough to slide over a knuckle onto a wrist"
+    - "multiple stiff bangles stacked on a wrist, clearly wrist-sized circular accessories"
+    - "a hard circular bracelet with a large opening, not bendable, worn above the wrist"
 
   bracelet:
     - "a flexible chain bracelet on a wrist"
@@ -81,36 +95,54 @@ categories:
 
 materials:
   gold:
-    - "bright warm yellow metallic surface"
-    - "shiny golden colored polished metal"
-    - "warm yellow toned jewelry"
-    - "rich yellow reflective metal"
+    - "bright warm yellow metallic surface with high shine"
+    - "rich yellow gold jewelry with reflective polished finish"
+    - "yellow gold ring or necklace with warm golden luster"
+    - "22 karat yellow gold surface with deep warm tone"
+    - "classic yellow gold metal with orange-yellow warm reflection"
+    - "matte or polished yellow gold with rich warm color"
+    - "warm orange-yellow metallic surface, distinctly warmer than silver"
 
   silver:
     - "cool grey white metallic surface"
     - "shiny silver grey colored metal"
     - "bright white-grey reflective metal"
     - "polished silver toned metal"
+    - "cool white-grey metal, distinctly cooler and whiter than gold"
+    - "sterling silver jewelry with neutral cool metallic finish"
+    - "white-toned silver metal with cool bluish-grey highlights"
 
   rose_gold:
     - "pinkish warm metallic surface"
     - "soft pink gold colored metal"
     - "rosy copper toned warm metal"
+    - "pink-tinted metal, warmer than silver but pinker than yellow gold"
+    - "rose gold jewelry with a distinctly pink warm metallic finish"
+    - "copper-tinted pink gold that is warmer and pinker than yellow gold"
+    - "a metal surface with soft pink warmth, lighter than copper"
 
   diamond:
     - "jewelry covered with small sparkling clear stones"
     - "tiny brilliant transparent crystals set in metal"
     - "glittering white stone settings"
+    - "brilliant cut clear diamonds set in metal prongs or bezels"
+    - "diamond-set jewelry with multiple tiny brilliant white crystals"
+    - "pavé or solitaire diamond setting with bright white sparkling stones"
 
   oxidized:
     - "dark blackened antiqued metal finish"
     - "matte gray-black oxidized jewelry surface"
     - "tarnished looking dark metal with an antique tribal finish"
+    - "intentionally tarnished dark metal with carved or embossed patterns"
+    - "oxidized jewelry with dark finish and intricate antique detailing"
+    - "darkened silver jewelry with oxidized black finish in grooves"
 
   platinum:
     - "cool dense bright white metallic surface"
     - "heavy lustrous platinum colored metal"
     - "smooth bright white-grey metal with a cool sheen"
+    - "platinum jewelry with distinctly bright cool white tone"
+    - "dense bright white metal, heavier looking than silver"
 
   other:
     - "jewelry made of a material that is not gold, silver, rose gold, diamond, oxidized, or platinum"
