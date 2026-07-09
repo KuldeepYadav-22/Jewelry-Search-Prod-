@@ -4,89 +4,88 @@ categories:
     - "a thin circular band on a finger"
     - "a solitaire diamond ring on a hand"
     - "a wedding band on a finger"
-    - "a mens signet ring on a finger"
-    - "a tiny ring worn on a toe"
+    - "a signet ring on a hand"
+    - "a small closed-loop band sized for one finger, not an ear"
+    - "a tiny circular band placed flat, small enough for one finger only"
+    - "a finger ring on a hand model, clearly finger-sized not wrist-sized"
+    - "a closed loop too small to pass over a wrist, sized for a finger only"
+    - "a ring with a gemstone, clearly a finger-sized ornament not a wrist accessory"
 
   necklace:
-    - "a necklace draped around a neck"
-    - "a long chain necklace hanging down"
+    - "a necklace draped around a neck, resting on the chest"
+    - "a long chain necklace hanging down from the neck"
     - "a choker necklace close to the throat"
-    - "a plain metal chain with linked loops"
-    - "a layered necklace with multiple strands"
+    - "a layered necklace with multiple strands around the neck"
+    - "a full neck-worn piece with a clasp, not a standalone hanging charm"
+    - "a necklace with a matching pendant and a pair of earrings shown together"
+    - "a pendant necklace set accompanied by matching earrings"
+    - "a complete necklace with visible chain and clasp worn around the neck"
+    - "a complete necklace with chain and pendant shown together as one wearable piece"
+
+  chain:
+    - "a plain metal chain with linked loops, no pendant attached"
+    - "a rope chain displayed flat, unadorned"
+    - "a curb chain without pendant"
+    - "a box chain laid straight, no hanging ornament"
+    - "a plain metal chain with no pendant or charm, just linked metal loops"
+    - "a standalone chain without any hanging ornament or gemstone"
 
   pendant:
-    - "a single hanging pendant charm without chain"
-    - "an ornamental piece hanging from a bail"
-    - "a religious idol pendant"
-    - "a medallion shaped pendant"
-    - "a locket pendant"
+    - "a single hanging pendant charm shown by itself, without a chain"
+    - "an ornamental piece hanging from a bail, sold separately from any necklace"
+    - "a religious idol pendant, standalone"
+    - "a medallion shaped pendant, isolated"
+    - "a locket pendant, not attached to a full chain"
+    - "a small charm-like ornament, not the complete looped necklace"
+    - "a single decorative charm shown alone with no chain attached to it"
+    - "an ornament with a bail at top for attaching to a chain, shown in isolation"
 
   mangalsutra:
     - "a necklace with black beads and a gold pendant"
-    - "two strands of small black beads with a center pendant"
+    - "two strands of small black beads with a center gold pendant"
     - "black beaded chains connected to a gold ornament"
-    - "a traditional necklace with black bead strings"
+    - "a traditional necklace with black bead strings and a metal centerpiece"
 
   earring:
-    - "a pair of earrings for the ear"
-    - "a stud earring with a post back"
-    - "a dangling drop earring"
+    - "a pair of earrings worn on the earlobe or ear"
+    - "a stud earring with a post back, attached to the ear"
+    - "a dangling drop earring hanging from the ear"
     - "a jhumka hanging earring"
-    - "a hoop earring"
-    - "an ear cuff on the upper ear"
-
-  nosering:
-    - "a tiny nose pin stud"
-    - "a small ring or stud for a nostril"
-    - "a decorative nath for the nose"
+    - "a hoop earring worn through the ear"
+    - "two matching small pieces meant for the ears, not a finger band"
 
   bangle:
-    - "a rigid round bangle that does not bend"
-    - "a thick stiff circular bangle for the wrist"
-    - "a solid round bangle bracelet"
-    - "a set of matching bangles"
+    - "a rigid round bangle that does not bend, worn on the wrist"
+    - "a thick stiff circular bangle for the wrist, above the hand"
+    - "a solid round bangle bracelet, hard and unflexing"
+    - "a set of matching rigid bangles on the wrist"
+    - "a stiff wrist hoop, larger than a finger ring and worn on the wrist, not the ankle"
+    - "a circular wrist ornament with large hollow center, much wider than a ring"
+    - "a rigid bangle large enough to slide over a knuckle onto a wrist"
+    - "multiple stiff bangles stacked on a wrist, clearly wrist-sized circular accessories"
+    - "a hard circular bracelet with a large opening, not bendable, worn above the wrist"
 
   bracelet:
     - "a flexible chain bracelet on a wrist"
-    - "a link bracelet with a clasp"
-    - "a tennis bracelet with stones in a row"
-    - "a cuff bracelet that opens"
+    - "a link bracelet with a clasp, bendable"
+    - "a tennis bracelet with stones in a row, flexible"
+    - "a cuff bracelet that opens, worn on the wrist"
+    - "a soft drapeable wrist chain, unlike a rigid bangle"
 
   anklet:
-    - "an anklet chain around an ankle"
-    - "a thin chain with tiny bells for the foot"
-    - "a delicate chain for the ankle"
+    - "an anklet chain worn around an ankle"
+    - "a flexible chain circling the lower leg near the foot"
+    - "ankle jewelry positioned near the feet, not the wrist"
+    - "a thin chain accessory worn above the foot"
 
-  watch:
+  other:
+    - "a tiny nose pin stud"
     - "a wristwatch with a dial and strap"
-    - "a watch with a round face and metal band"
-    - "a timepiece with hour markers"
-
-  head_jewellery:
     - "a maang tikka on the forehead"
-    - "a decorative hair pin"
-    - "a head chain ornament"
-    - "a jhoomar side head piece"
-
-  waist_belt:
     - "a waist chain belt"
-    - "a kamarband around the waist"
-    - "a belly chain"
-
-  brooch:
     - "a decorative pin brooch"
-    - "a flat ornamental piece with a pin clasp"
-    - "a saree pin"
-
-  coin:
     - "a gold coin"
-    - "a round flat gold disc"
-    - "a commemorative gold coin"
-
-  jewellery_set:
-    - "a matching set of necklace and earrings"
-    - "multiple jewelry pieces displayed together"
-    - "a bridal set with necklace earrings and bangles"
+    - "a miscellaneous jewelry item"
 
   paper:
     - "a printed paper document"
@@ -96,42 +95,56 @@ categories:
 
 materials:
   gold:
-    - "bright warm yellow metallic surface"
-    - "shiny golden colored polished metal"
-    - "warm yellow toned jewelry"
-    - "rich yellow reflective metal"
+    - "bright warm yellow metallic surface with high shine"
+    - "rich yellow gold jewelry with reflective polished finish"
+    - "yellow gold ring or necklace with warm golden luster"
+    - "22 karat yellow gold surface with deep warm tone"
+    - "classic yellow gold metal with orange-yellow warm reflection"
+    - "matte or polished yellow gold with rich warm color"
+    - "warm orange-yellow metallic surface, distinctly warmer than silver"
 
-  white_metal:
+  silver:
     - "cool grey white metallic surface"
     - "shiny silver grey colored metal"
-    - "bright white reflective metal"
-    - "grey toned polished metal"
+    - "bright white-grey reflective metal"
+    - "polished silver toned metal"
+    - "cool white-grey metal, distinctly cooler and whiter than gold"
+    - "sterling silver jewelry with neutral cool metallic finish"
+    - "white-toned silver metal with cool bluish-grey highlights"
 
   rose_gold:
     - "pinkish warm metallic surface"
     - "soft pink gold colored metal"
     - "rosy copper toned warm metal"
+    - "pink-tinted metal, warmer than silver but pinker than yellow gold"
+    - "rose gold jewelry with a distinctly pink warm metallic finish"
+    - "copper-tinted pink gold that is warmer and pinker than yellow gold"
+    - "a metal surface with soft pink warmth, lighter than copper"
 
-  diamond_stones:
+  diamond:
     - "jewelry covered with small sparkling clear stones"
     - "tiny brilliant transparent crystals set in metal"
     - "glittering white stone settings"
+    - "brilliant cut clear diamonds set in metal prongs or bezels"
+    - "diamond-set jewelry with multiple tiny brilliant white crystals"
+    - "pavé or solitaire diamond setting with bright white sparkling stones"
 
-  colored_gemstone:
-    - "jewelry with colored gemstones"
-    - "a colored stone set in metal"
-    - "bright colored gem in a setting"
+  oxidized:
+    - "dark blackened antiqued metal finish"
+    - "matte gray-black oxidized jewelry surface"
+    - "tarnished looking dark metal with an antique tribal finish"
+    - "intentionally tarnished dark metal with carved or embossed patterns"
+    - "oxidized jewelry with dark finish and intricate antique detailing"
+    - "darkened silver jewelry with oxidized black finish in grooves"
 
-  pearl:
-    - "round white pearl beads"
-    - "smooth lustrous pearl spheres"
-    - "creamy white round pearls"
+  platinum:
+    - "cool dense bright white metallic surface"
+    - "heavy lustrous platinum colored metal"
+    - "smooth bright white-grey metal with a cool sheen"
+    - "platinum jewelry with distinctly bright cool white tone"
+    - "dense bright white metal, heavier looking than silver"
 
-  black_beads:
-    - "small round black beads strung together"
-    - "black bead strands"
-
-  enamel_colored:
-    - "colorful enamel work on metal"
-    - "bright colored decorative coating on gold"
-    - "multicolored painted metal surface"
+  other:
+    - "jewelry made of a material that is not gold, silver, rose gold, diamond, oxidized, or platinum"
+    - "colored gemstones, pearls, enamel, or beads on a jewelry piece"
+    - "a non-metallic or mixed-color material such as pearl, gemstone, or enamel work"
