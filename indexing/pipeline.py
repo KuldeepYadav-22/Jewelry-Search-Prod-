@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image
 
 from classifiers.category_classifier import CategoryClassifier
+from classifiers.geometry_classifier import GeometryClassifier
 from classifiers.material_classifier import MaterialClassifier
 from engines.clip_engine import CLIPEngine
 from engines.dinov2_engine import DINOv2Engine
@@ -53,12 +54,14 @@ class IndexingPipeline:
         dinov2_engine: DINOv2Engine,
         category_classifier: CategoryClassifier,
         material_classifier: MaterialClassifier,
+        geometry_classifier: GeometryClassifier = None,
     ):
         self.processor = image_processor
         self.clip = clip_engine
         self.dinov2 = dinov2_engine
         self.cat_clf = category_classifier
         self.mat_clf = material_classifier
+        self.geo_clf = geometry_classifier or GeometryClassifier()
 
     def process(self, serial_number: str, image: Image.Image,
                 tenant_id: str) -> IndexRecord:
@@ -88,6 +91,15 @@ class IndexingPipeline:
             norm_clip = clip_emb / (np.linalg.norm(clip_emb) + 1e-8)
             cat, cat_conf, _ = self.cat_clf.classify(norm_clip)
             mat, mat_conf, _ = self.mat_clf.classify(norm_clip)
+
+            # Step 4b: Geometry fusion
+            geo_cat, geo_conf = self.geo_clf.classify(processed.rgba)
+            if geo_cat is not None:
+                if geo_cat == cat:
+                    cat_conf = min(1.0, cat_conf + geo_conf * 0.3)
+                elif geo_conf > 0.65 and cat_conf < 0.35:
+                    cat = geo_cat
+                    cat_conf = geo_conf
 
             return IndexRecord(
                 serial_number=serial_number,
