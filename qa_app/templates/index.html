@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jewelry Category Classifier — QA</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Jewelry Category Classifier — QA</h1>
+    <p class="subtitle">Internal review tool — upload a photo, check the prediction, log the verdict.</p>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash">
+          {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <section class="upload-card">
+      <form action="{{ url_for('qa.predict') }}" method="post" enctype="multipart/form-data" id="upload-form">
+        <div class="dropzone" id="dropzone">
+          <p>Drag &amp; drop an image here, or choose / capture one below</p>
+          <input type="file" name="image" id="file-input" accept="image/*" capture="environment" required>
+        </div>
+        <button type="submit">Classify</button>
+      </form>
+    </section>
+
+    {% if result %}
+    <section class="result-card">
+      <div class="result-grid">
+        <div class="preview">
+          <img src="{{ image_url }}" alt="Uploaded jewelry image">
+        </div>
+
+        <div class="prediction">
+          {% if result.is_jewelry_gate == "no" %}
+            <div class="badge badge-warning">
+              ⚠ Low trust: CLIP gate says not jewelry
+              (gate category: {{ result.gate_category }}, {{ "%.0f"|format(result.gate_confidence * 100) }}%)
+            </div>
+          {% endif %}
+
+          <h2>Predicted: <span class="cat-highlight">{{ result.predicted_category }}</span></h2>
+          <p class="confidence">Confidence: {{ "%.1f"|format(result.predicted_confidence * 100) }}%</p>
+          <p class="meta">{{ result.model_type }} · {{ result.embedding_config }}</p>
+
+          <h3>Full score breakdown</h3>
+          <ul class="score-list">
+            {% for cls, score in sorted_scores %}
+            <li>
+              <span class="cls-name">{{ cls }}</span>
+              <span class="bar-track"><span class="bar-fill" style="width: {{ (score * 100) | round(1) }}%"></span></span>
+              <span class="cls-score">{{ "%.1f"|format(score * 100) }}%</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <form action="{{ url_for('qa.submit') }}" method="post" class="verdict-form">
+        <input type="hidden" name="saved_image_path" value="{{ saved_image_path }}">
+        <input type="hidden" name="predicted_category" value="{{ result.predicted_category }}">
+        <input type="hidden" name="predicted_confidence" value="{{ result.predicted_confidence }}">
+        <input type="hidden" name="all_class_scores" value='{{ result.all_class_scores | tojson }}'>
+        <input type="hidden" name="is_jewelry_gate" value="{{ result.is_jewelry_gate }}">
+        <input type="hidden" name="model_type" value="{{ result.model_type }}">
+        <input type="hidden" name="embedding_config" value="{{ result.embedding_config }}">
+
+        <fieldset>
+          <legend>Is the prediction correct?</legend>
+          <label><input type="radio" name="verdict" value="correct" checked> Correct</label>
+          <label><input type="radio" name="verdict" value="incorrect"> Incorrect</label>
+        </fieldset>
+
+        <label for="actual_label">Actual category (required if incorrect)</label>
+        <select name="actual_label" id="actual_label" disabled>
+          <option value="" disabled selected>Select category…</option>
+          {% for cls in target_classes %}
+          <option value="{{ cls }}">{{ cls }}</option>
+          {% endfor %}
+        </select>
+
+        <button type="submit">Confirm &amp; Log</button>
+      </form>
+    </section>
+    {% endif %}
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

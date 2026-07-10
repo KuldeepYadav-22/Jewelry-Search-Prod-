@@ -10,3 +10,8 @@ kornia
 sqlalchemy>=2.0.0
 pgvector>=0.3.0
 psycopg2-binary>=2.9.0
+
+# QA web UI (qa_app/) — trained category classifier + Flask front-end
+flask>=3.0.0
+xgboost>=2.0.0
+joblib>=1.3.0

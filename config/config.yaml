@@ -25,3 +25,14 @@ database:
   url: "postgresql://user:pass@localhost:5432/jewelry_search"
   pool_size: 5
   max_overflow: 10
+
+# Standalone QA web UI for the trained supervised category classifier
+# (see qa_app/). Not used by the indexing/search pipeline.
+qa_app:
+  host: 0.0.0.0
+  port: 5000
+  debug: false
+  category_classifier_model_dir: model
+  upload_dir: data/qa_uploads
+  log_csv: data/qa_log.csv
+  max_upload_mb: 20

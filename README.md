@@ -91,10 +91,10 @@ response = search.search(query_image, "tenant_abc", config=custom)
 ```
 jewelry-search/
 ├── config/
-│   ├── config.yaml          # model paths, search params, DB URL
+│   ├── config.yaml          # model paths, search params, DB URL, qa_app settings
 │   └── prompts.yaml         # classification prompts
 ├── engines/                 # BiRefNet, CLIP, DINOv2 (shared)
-├── classifiers/             # Category + Material (shared)
+├── classifiers/             # Category + Material (shared) + trained SupervisedCategoryClassifier
 ├── preprocess/              # Image processing (shared)
 ├── db/
 │   ├── models.py            # SQLAlchemy ORM model (pgvector)
@@ -104,7 +104,78 @@ jewelry-search/
 │   └── pipeline.py          # serial + image → IndexRecord
 ├── inference/
 │   └── search.py            # image + tenant → SearchResponse
+├── qa_app/                  # standalone QA web UI (see below)
+├── model/                   # trained category classifier artifacts (see below)
+├── app.py                   # QA web UI entry point
 ├── docs/
 │   └── SEARCH_ARCHITECTURE.md
 └── README.md
 ```
+
+## QA Web UI (Category Classifier)
+
+A standalone Flask app for internally reviewing the trained 10-class
+supervised category classifier (`classifiers/supervised_category_classifier.py`).
+It is separate from the main search pipeline (`indexing/`, `inference/`) — it
+does not touch the database and does not affect production search traffic.
+
+### Model artifacts
+
+Place these three files (produced by `jewelry_category_classifier (1).ipynb`)
+in `model/` before starting the app:
+
+```
+model/category_classifier.xgb
+model/label_encoder.joblib
+model/model_metadata.json
+```
+
+The app **fails fast at startup** and names exactly which file is missing (or,
+if a file exists but isn't valid, exactly which file and why) — it will not
+partially start.
+
+### Running it
+
+```bash
+pip install -r requirements.txt
+python app.py
+```
+
+- Binds to `0.0.0.0:5000` by default (override `host`/`port`/`debug` under
+  `qa_app:` in `config/config.yaml`).
+- Runs as a single process on GPU if available (`inference.device: auto` in
+  `config/config.yaml`) — no worker pool, this is an internal QA tool, not a
+  production endpoint.
+- All models (BiRefNet, CLIP, DINOv2, zero-shot gate, trained classifier)
+  load once at startup; the startup log reports device, per-model
+  local-cache/download status, and the winning `model_type` +
+  `embedding_config` from `model_metadata.json`.
+
+### Exposing it externally
+
+Point `cloudflared` at the local port the app is bound to, e.g.:
+
+```bash
+cloudflared tunnel --url http://localhost:5000
+```
+
+(Tunnel setup itself — named tunnels, DNS, auth — is external to this app;
+the app only needs to bind to a stable local host/port.)
+
+### What it does
+
+Upload a photo (drag-and-drop, file picker, or mobile camera capture) →
+BiRefNet background removal → the same CLIP/DINOv2 preprocessing and
+embeddings used everywhere else in this repo → the trained classifier's
+top prediction plus a full 10-class score breakdown, with a low-trust badge
+if the existing zero-shot CLIP gate doesn't think the image is jewelry.
+QA can then confirm the prediction or pick the actual category from a fixed
+10-class dropdown; either way the review is appended to `data/qa_log.csv`
+(concurrency-safe across multiple QA users) and the uploaded image is saved
+to `data/qa_uploads/` (both gitignored).
+
+### Known gap
+
+No authentication — anyone with the tunnel URL can use the tool. Acceptable
+for an internal QA tool per the task scope, but worth knowing before sharing
+the link widely.
