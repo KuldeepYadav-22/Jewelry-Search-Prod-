@@ -1,7 +1,13 @@
 torch>=2.0.0
 torchvision>=0.15.0
-sentence-transformers>=2.7.0
-transformers>=4.40.0
+# Pinned exactly: sentence-transformers>=4.x / transformers>=5.x break loading
+# the local clip-ViT-L-14 checkpoint (SentenceTransformer's CLIP wrapper hits
+# "'BaseModelOutputWithPooling' object has no attribute 'ndim'" inside
+# transformer.py). This combo is known-good and has prebuilt wheels on
+# Python 3.11 (no Rust/cargo build required).
+sentence-transformers==3.3.1
+transformers==4.46.3
+tokenizers==0.20.3
 Pillow>=10.0.0
 numpy>=1.24.0
 pandas>=2.0.0
