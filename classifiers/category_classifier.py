@@ -2,9 +2,16 @@
 classifiers/category_classifier.py
 Zero-shot category classification using CLIP text-image similarity.
 Uses per-prompt soft voting instead of centroid averaging.
+
+Also doubles as the narrow "is_jewelry" gate that runs immediately after
+CLIP encoding, ahead of the trained category classifier — see is_jewelry().
 """
 from __future__ import annotations
 import numpy as np
+
+# Zero-shot outcomes that mean "not a jewelry product photo": the explicit
+# "paper" reject prompts, or a best score too weak to trust ("unknown").
+NOT_JEWELRY_CATEGORIES = {"paper", "unknown"}
 
 
 class CategoryClassifier:
@@ -35,3 +42,20 @@ class CategoryClassifier:
             return "unknown", scores[best], scores
 
         return best, scores[best], scores
+
+    def is_jewelry(self, clip_embedding: np.ndarray) -> tuple[bool, str, float]:
+        """
+        Narrow binary gate: is this a jewelry product photo at all?
+
+        Wraps classify() rather than re-scoring — "paper" and "unknown"
+        (low-confidence best match) both mean "no". Runs first, ahead of
+        DINOv2 encoding and the trained category classifier: those only
+        run when this gate passes.
+
+        Returns:
+            (is_jewelry, raw_category, confidence) — raw_category/confidence
+            are the underlying zero-shot classify() result, kept for logging
+            and for populating rejected-result fields.
+        """
+        category, confidence, _ = self.classify(clip_embedding)
+        return category not in NOT_JEWELRY_CATEGORIES, category, confidence

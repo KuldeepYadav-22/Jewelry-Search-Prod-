@@ -5,10 +5,14 @@ Pool-based similarity search with threshold pools and serial deduplication.
 The input image is expected to be RGBA with background already removed
 on-device. BiRefNet is no longer called here.
 
-Architecture:
+Architecture (sequential, gate-first):
     RGBA Image → split path (white_bg + crop)
-      ├→ white bg (uncropped) → CLIP → classify category + material
-      └→ crop to subject      → DINOv2 → visual embedding
+      → white bg (uncropped) → CLIP encode
+      → is_jewelry gate (zero-shot CLIP, narrow binary check)
+          no  → REJECTED — skip DINOv2, skip trained classifier, skip material
+          yes → crop → DINOv2 encode
+                → trained category classifier (CLIP + DINO per embedding_config)
+                → material classifier (CLIP-only, unchanged)
 
     Filter candidates by category + material (via DB ORM)
     Threshold-based pools → merge → dedup by serial_number → top-K
@@ -25,6 +29,7 @@ from PIL import Image
 
 from classifiers.category_classifier import CategoryClassifier
 from classifiers.material_classifier import MaterialClassifier
+from classifiers.supervised_category_classifier import SupervisedCategoryClassifier
 from engines.clip_engine import CLIPEngine
 from engines.dinov2_engine import DINOv2Engine
 from preprocess.image_processor import ImageProcessor
@@ -103,7 +108,8 @@ class SearchPipeline:
         image_processor: ImageProcessor,
         clip_engine: CLIPEngine,
         dinov2_engine: DINOv2Engine,
-        category_classifier: CategoryClassifier,
+        zero_shot_gate: CategoryClassifier,
+        category_classifier: SupervisedCategoryClassifier,
         material_classifier: MaterialClassifier,
         repository: JewelryRepository,
         config: SearchConfig = None,
@@ -115,6 +121,7 @@ class SearchPipeline:
         self.processor = image_processor
         self.clip = clip_engine
         self.dinov2 = dinov2_engine
+        self.gate = zero_shot_gate
         self.cat_clf = category_classifier
         self.mat_clf = material_classifier
         self.repo = repository
@@ -158,27 +165,41 @@ class SearchPipeline:
         clip_emb = self.clip.run(processed.white_bg)
         timing["clip_ms"] = round((time.perf_counter() - t0) * 1000, 2)
 
-        # ── Stage 3: Classify ─────────────────────────────────────────
+        # ── Stage 3: is_jewelry gate — must pass before any downstream step ──
+        # This gate is a strict gate on the entire downstream pipeline, not
+        # just on category classification: DINOv2 encoding, the trained
+        # category classifier, and material classification all run only if
+        # this passes.
         t0 = time.perf_counter()
         norm_clip = clip_emb / (np.linalg.norm(clip_emb) + 1e-8)
-        q_cat, q_cat_conf, _ = self.cat_clf.classify(norm_clip)
-        q_mat, q_mat_conf, _ = self.mat_clf.classify(norm_clip)
-        timing["classify_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+        is_jewelry, gate_cat, gate_conf = self.gate.is_jewelry(norm_clip)
+        timing["gate_ms"] = round((time.perf_counter() - t0) * 1000, 2)
 
-        # Paper rejection
-        if q_cat == "paper":
+        if not is_jewelry:
             timing["total_ms"] = round((time.perf_counter() - t_total) * 1000, 2)
             return SearchResponse(
-                results=[], query_category=q_cat, query_confidence=q_cat_conf,
-                query_material=q_mat, material_confidence=q_mat_conf,
+                results=[], query_category=gate_cat, query_confidence=gate_conf,
+                query_material="unknown", material_confidence=0.0,
                 n_images=0, n_products=0, pool_stats={}, timing_ms=timing,
-                rejected=True, rejected_reason="Image classified as paper/document.",
+                rejected=True,
+                rejected_reason=(
+                    f"Image classified as '{gate_cat}' by the is_jewelry gate "
+                    f"— not a jewelry product photo."
+                ),
             )
 
-        # ── Stage 4: DINOv2 embedding (cropped) ──────────────────────
+        # ── Stage 4: DINOv2 embedding (cropped) — only after gate passes ──
         t0 = time.perf_counter()
         dino_emb = self.dinov2.run(processed.cropped)
         timing["dinov2_ms"] = round((time.perf_counter() - t0) * 1000, 2)
+
+        # ── Stage 4b: Classify — trained category (CLIP+DINO per
+        # embedding_config, so it runs after both encodes) + material
+        # (CLIP-only, unchanged) ──────────────────────────────────────
+        t0 = time.perf_counter()
+        q_cat, q_cat_conf, _ = self.cat_clf.classify(clip_emb, dino_emb)
+        q_mat, q_mat_conf, _ = self.mat_clf.classify(norm_clip)
+        timing["classify_ms"] = round((time.perf_counter() - t0) * 1000, 2)
 
         # ── Stage 5: Fetch candidates from DB ─────────────────────────
         # TODO: If you need custom SQL filtering for category + material

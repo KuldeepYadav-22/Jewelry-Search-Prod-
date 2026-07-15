@@ -17,9 +17,23 @@ search:
   use_category_filter: true
   use_material_filter: true
   material_confidence_threshold: 0.20
+  # Threshold for the zero-shot CLIP is_jewelry gate (classifiers/category_classifier.py),
+  # not the trained category classifier below — see category_classifier.unknown_threshold.
   category_confidence_threshold: 0.20
   dino_only_penalty: 0.9
   clip_only_penalty: 0.85
+
+# Trained supervised category classifier (CLIP+DINO embeddings -> XGBoost),
+# used in indexing and search only for images that pass the is_jewelry gate.
+# Same artifacts/paths as qa_app (see qa_app.category_classifier_model_dir) —
+# do not let these diverge.
+category_classifier:
+  model_dir: model
+  # Post-hoc confidence threshold: predictions below this become "unknown"
+  # (same pattern as the old zero-shot 0.20 threshold, but NOT the same
+  # value — this model's confidence distribution has not been calibrated
+  # yet). TODO: recalibrate against a validation set once the model is deployed.
+  unknown_threshold: 0.50
 
 database:
   url: "postgresql://user:pass@localhost:5432/jewelry_search"

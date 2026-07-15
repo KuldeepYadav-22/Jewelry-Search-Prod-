@@ -22,8 +22,6 @@ from qa_app.model_loader import ModelBundle
 # uploads don't race on the same CUDA context / model state.
 _INFERENCE_LOCK = threading.Lock()
 
-NOT_JEWELRY_CATEGORIES = {"paper", "unknown"}
-
 
 @dataclass
 class QAResult:
@@ -47,8 +45,8 @@ def run_pipeline(bundle: ModelBundle, image: Image.Image) -> QAResult:
         clip_emb = bundle.clip.run(processed.white_bg)
         norm_clip = clip_emb / (np.linalg.norm(clip_emb) + 1e-8)
 
-        gate_cat, gate_conf, _ = bundle.zero_shot_gate.classify(norm_clip)
-        is_jewelry = "no" if gate_cat in NOT_JEWELRY_CATEGORIES else "yes"
+        gate_pass, gate_cat, gate_conf = bundle.zero_shot_gate.is_jewelry(norm_clip)
+        is_jewelry = "yes" if gate_pass else "no"
 
         dino_emb = bundle.dinov2.run(processed.cropped)
 
